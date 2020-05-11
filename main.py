@@ -178,7 +178,7 @@ async def start(ctx):
     if gameMode == "mafia":
         await ctx.send("Mafia games are currently unavaliable. You cannot start them.")
         return
-    wwgame(ctx, currentPlayers)
+    await wwgame(ctx, currentPlayers)
         
 async def wwgame(ctx, currentPlayers):
     playerCount = 0
@@ -188,12 +188,19 @@ async def wwgame(ctx, currentPlayers):
         newRole = random.choice(wwGameRoles)
         currentGameRoles.append(newRole)
         wwGameRoles.remove(newRole)
+        playerCount += 1
     playerRoleDict = {}
     playerCount = 0
     for playerID in currentPlayers:
         memberObject = ctx.guild.get_member(playerID)
+        print("got member object")
         playerRoleDict[playerID] = currentGameRoles[playerCount]
-        memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
+        print("assigned to dict")
+        await memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
+        print("send message to user")
+        playerCount += 1
+        print("incremented playerCount")
+    print("sent users their roles")
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
     userDB.commit()
     await ctx.send("It is discussion time! Throw around some random accusations!")
