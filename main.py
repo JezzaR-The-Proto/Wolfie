@@ -180,7 +180,7 @@ async def start(ctx):
         return
     wwgame(ctx, currentPlayers)
         
-def wwgame(ctx, currentPlayers):
+async def wwgame(ctx, currentPlayers):
     playerCount = 0
     currentGameRoles = []
     wwGameRoles = wwRoles[:len(currentPlayers)]
@@ -193,10 +193,14 @@ def wwgame(ctx, currentPlayers):
     for playerID in currentPlayers:
         memberObject = ctx.guild.get_member(playerID)
         playerRoleDict[playerID] = currentGameRoles[playerCount]
-        
+        memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
+    userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
+    userDB.commit()
+    await ctx.send("It is discussion time! Throw around some random accusations!")
 
-def mafiagame():
-    test = "yes"
+async def mafiagame():
+    test = True
+
 @client.event
 async def on_guild_join(guild):
     channels = guild.text_channels
