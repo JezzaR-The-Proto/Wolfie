@@ -126,7 +126,7 @@ async def create(ctx, *mode):
     if noGame:
         players = f"{ctx.author.id}"
         playerRoles = ""
-        userCursor.execute("INSERT INTO games(channelID, initiatorID, gameMode, players, playerRoles) VALUES(?,?,?,?)",(ctx.channel.id,ctx.author.id,mode,players,playerRoles))
+        userCursor.execute("INSERT INTO games(channelID, initiatorID, gameMode, players, playerRoles) VALUES(?,?,?,?,?)",(ctx.channel.id,ctx.author.id,mode,players,playerRoles))
         userDB.commit()
         await ctx.send(f"A game of `{mode.capitalize()}` has started in this channel! Use `w.join` to join it!")
     else:
@@ -158,7 +158,6 @@ async def join(ctx):
 
 @client.command()
 async def start(ctx):
-    print(ctx.guild)
     userCursor.execute("SELECT players,channelID FROM games WHERE initiatorID = ?",(ctx.author.id,))
     try:
         players = userCursor.fetchall()[0]
@@ -188,17 +187,14 @@ async def start(ctx):
         playerCount += 1
     playerRoleDict = {}
     playerCount = 0
-    print(currentPlayers)
     for playerID in currentPlayers:
-        memberObject = discord.utils.get(client.get_all_members(), id=playerID)
+        guildObj = ctx.guild
+        memberObject = guildObj.get_member(int(playerID))
+        if memberObject == None:
+            await ctx.send("There was an error getting User Objects from Discord. Cancelling Command.")
         playerRoleDict[playerID] = currentGameRoles[playerCount]
-        print("assigned to dict")
-        print(playerRoleDict)
         await memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
-        print("send message to user")
         playerCount += 1
-        print("incremented playerCount")
-    print("sent users their roles")
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
     userDB.commit()
     await ctx.send("It is discussion time! Throw around some random accusations!")
@@ -215,7 +211,7 @@ async def on_guild_join(guild):
     guildOwner = guild.owner
     await guildOwner.send(f"Hey there! I can't send messages to any of the channels in your server `{guild.name}`! This means I cannot work on your server, please fix this!")
 
-'''@client.event
+@client.event
 async def on_command_error(ctx, error):
     ignored = (commands.CommandNotFound, commands.UserInputError)
     if hasattr(ctx.command,"on_error"):
@@ -226,6 +222,6 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         seconds = math.ceil(error.retry_after)
         towait = format_timespan(seconds)
-        return await ctx.send(f"Woah woah, slow down there, you have to wait {towait} seconds to do this command again.")'''
+        return await ctx.send(f"Woah woah, slow down there, you have to wait {towait} seconds to do this command again.")
 
 client.run(TOKEN)
