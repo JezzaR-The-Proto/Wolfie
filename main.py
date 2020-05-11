@@ -178,9 +178,6 @@ async def start(ctx):
     if gameMode == "mafia":
         await ctx.send("Mafia games are currently unavaliable. You cannot start them.")
         return
-    await wwgame(ctx, currentPlayers)
-        
-async def wwgame(ctx, currentPlayers):
     playerCount = 0
     currentGameRoles = []
     wwGameRoles = wwRoles[:len(currentPlayers)]
@@ -191,11 +188,12 @@ async def wwgame(ctx, currentPlayers):
         playerCount += 1
     playerRoleDict = {}
     playerCount = 0
+    print(currentPlayers)
     for playerID in currentPlayers:
-        memberObject = ctx.guild.get_member(playerID)
-        print("got member object")
+        memberObject = discord.utils.get(client.get_all_members(), id=playerID)
         playerRoleDict[playerID] = currentGameRoles[playerCount]
         print("assigned to dict")
+        print(playerRoleDict)
         await memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
         print("send message to user")
         playerCount += 1
@@ -204,9 +202,6 @@ async def wwgame(ctx, currentPlayers):
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
     userDB.commit()
     await ctx.send("It is discussion time! Throw around some random accusations!")
-
-async def mafiagame():
-    test = True
 
 @client.event
 async def on_guild_join(guild):
@@ -220,7 +215,7 @@ async def on_guild_join(guild):
     guildOwner = guild.owner
     await guildOwner.send(f"Hey there! I can't send messages to any of the channels in your server `{guild.name}`! This means I cannot work on your server, please fix this!")
 
-@client.event
+'''@client.event
 async def on_command_error(ctx, error):
     ignored = (commands.CommandNotFound, commands.UserInputError)
     if hasattr(ctx.command,"on_error"):
@@ -231,6 +226,6 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         seconds = math.ceil(error.retry_after)
         towait = format_timespan(seconds)
-        return await ctx.send(f"Woah woah, slow down there, you have to wait {towait} seconds to do this command again.")
+        return await ctx.send(f"Woah woah, slow down there, you have to wait {towait} seconds to do this command again.")'''
 
 client.run(TOKEN)
