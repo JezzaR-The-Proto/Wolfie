@@ -126,7 +126,7 @@ async def create(ctx, *mode):
     if noGame:
         players = f"{ctx.author.id}"
         playerRoles = ""
-        userCursor.execute("INSERT INTO games(channelID, initiatorID, gameMode, players, playerRoles) VALUES(?,?,?,?,?)",(ctx.channel.id,ctx.author.id,mode,players,playerRoles))
+        userCursor.execute("INSERT INTO games(channelID, initiatorID, gameMode, playing, players, playerRoles) VALUES(?,?,?,?,?,?)",(ctx.channel.id,ctx.author.id,mode,int(0),players,playerRoles))
         userDB.commit()
         await ctx.send(f"A game of `{mode.capitalize()}` has started in this channel! Use `w.join` to join it!")
     else:
@@ -169,6 +169,11 @@ async def start(ctx):
     if str(channelID) != str(ctx.channel.id):
         await ctx.send("You did not create the game on this channel so you can't start it!")
         return
+    userCursor.execute("SELECT playing FROM games WHERE initiatorID = ?",(ctx.author.id,))
+    playing = userCursor.fetchall()[0][0]
+    if playing == 1:
+        await ctx.send("The game is still going on! You cannot start it again.")
+        return
     ''' if len(currentPlayers) < 4:
         await ctx.send(f"There aren't enough players to start! There are only {len(currentPlayers)} players out of the needed 4!")
         return '''
@@ -196,6 +201,7 @@ async def start(ctx):
         await memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
         playerCount += 1
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
+    userCursor.execute("UPDATE games SET playing = ? WHERE initiatorID = ?",(int(1),ctx.author.id))
     userDB.commit()
     await ctx.send("It is discussion time! Throw around some random accusations!")
 
