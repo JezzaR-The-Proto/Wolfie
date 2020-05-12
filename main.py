@@ -208,6 +208,18 @@ async def start(ctx):
     await ctx.send("Now vote! Use `w.vote @player` to vote and `w.unvote` to remove your vote. You have 30 seconds!")
     await asyncio.sleep(30)
 
+@client.command()
+async def vote(ctx, *member: discord.Member):
+    userCursor.execute("SELECT playing FROM games WHERE channelID = ?",(ctx.channel.id,))
+    playing = userCursor.fetchall()
+    if playing == []:
+        await ctx.send("There is no game going on in this channel!")
+        return
+    if member == []:
+        await ctx.send("You need to mention who you want to vote for.")
+        return
+    member = member[0]
+    
 
 @client.event
 async def on_guild_join(guild):
