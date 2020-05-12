@@ -126,7 +126,7 @@ async def create(ctx, *mode):
     if noGame:
         players = f"{ctx.author.id}"
         playerRoles = ""
-        userCursor.execute("INSERT INTO games(channelID, initiatorID, gameMode, playing, players, playerRoles) VALUES(?,?,?,?,?,?)",(ctx.channel.id,ctx.author.id,mode,int(0),players,playerRoles))
+        userCursor.execute("INSERT INTO games(channelID, initiatorID, gameMode, playing, players, playerRoles, playerVotes) VALUES(?,?,?,?,?,?,?)",(ctx.channel.id,ctx.author.id,mode,int(0),players,playerRoles,""))
         userDB.commit()
         await ctx.send(f"A game of `{mode.capitalize()}` has started in this channel! Use `w.join` to join it!")
     else:
@@ -203,7 +203,11 @@ async def start(ctx):
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
     userCursor.execute("UPDATE games SET playing = ? WHERE initiatorID = ?",(int(1),ctx.author.id))
     userDB.commit()
-    await ctx.send("It is discussion time! Throw around some random accusations!")
+    await ctx.send("It is discussion time! You have 1 minute to throw around some random accusations!")
+    await asyncio.sleep(60)
+    await ctx.send("Now vote! Use `w.vote @player` to vote and `w.unvote` to remove your vote. You have 30 seconds!")
+    await asyncio.sleep(30)
+
 
 @client.event
 async def on_guild_join(guild):
