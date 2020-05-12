@@ -158,6 +158,7 @@ async def join(ctx):
 
 @client.command()
 async def start(ctx):
+    global votingMessage
     userCursor.execute("SELECT players,channelID FROM games WHERE initiatorID = ?",(ctx.author.id,))
     try:
         players = userCursor.fetchall()[0]
@@ -205,21 +206,49 @@ async def start(ctx):
     userDB.commit()
     await ctx.send("It is discussion time! You have 1 minute to throw around some random accusations!")
     await asyncio.sleep(60)
-    await ctx.send("Now vote! Use `w.vote @player` to vote and `w.unvote` to remove your vote. You have 30 seconds!")
+    votingMessage = await ctx.send("Now vote! Use `w.vote @player` to vote and `w.unvote` to remove your vote. You have 30 seconds! This message will be updated with the current votes.")
     await asyncio.sleep(30)
 
 @client.command()
 async def vote(ctx, *member: discord.Member):
     userCursor.execute("SELECT playing FROM games WHERE channelID = ?",(ctx.channel.id,))
-    playing = userCursor.fetchall()
-    if playing == []:
+    playing = userCursor.fetchall()[0][0]
+    if playing == 0:
         await ctx.send("There is no game going on in this channel!")
         return
     if member == []:
         await ctx.send("You need to mention who you want to vote for.")
         return
     member = member[0]
-    
+    userCursor.execute("SELECT players FROM games WHERE channelID = ?",(ctx.channel.id,))
+    players = userCursor.fetchall()[0][0]
+    players = players.split(",")
+    if str(member.id) not in players:
+        await ctx.send("That person isn't in this game!")
+        return
+    userCursor.execute("SELECT playerVotes FROM games WHERE channelID = ?",(ctx.channel.id,))
+    votes = userCursor.fetchall()[0][0]
+    try:
+        votes = votes.split(",")
+    except:
+        votes = []
+    while len(votes) < len(players):
+        votes.append("")
+    finalVotes = []
+    count = 0
+    print("assigned count")
+    for playerID in players:
+        if playerID == ctx.author.id:
+            finalVotes.append(member.id)
+        else:
+            finalVotes.append(votes[count])
+        count += 1
+        print("done one iteration of checking")
+    finalVotes = ",".join(finalVotes)
+    print("joined shit together")
+    userCursor.execute("UPDATE games SET playerVotes = ? WHERE channelID = ?",(finalVotes,ctx.channel.id))
+    userDB.commit()
+    await ctx.send(f"`{ctx.author}` have voted for `{member}`")
 
 @client.event
 async def on_guild_join(guild):
@@ -233,7 +262,7 @@ async def on_guild_join(guild):
     guildOwner = guild.owner
     await guildOwner.send(f"Hey there! I can't send messages to any of the channels in your server `{guild.name}`! This means I cannot work on your server, please fix this!")
 
-@client.event
+'''@client.event
 async def on_command_error(ctx, error):
     ignored = (commands.CommandNotFound, commands.UserInputError)
     if hasattr(ctx.command,"on_error"):
@@ -244,6 +273,6 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         seconds = math.ceil(error.retry_after)
         towait = format_timespan(seconds)
-        return await ctx.send(f"Woah woah, slow down there, you have to wait {towait} seconds to do this command again.")
+        return await ctx.send(f"Woah woah, slow down there, you have to wait {towait} seconds to do this command again.")'''
 
 client.run(TOKEN)
