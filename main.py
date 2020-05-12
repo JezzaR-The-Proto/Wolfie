@@ -4,6 +4,7 @@ from itertools import cycle
 from datetime import datetime
 from time import sleep
 from humanfriendly import format_timespan
+from collections import Counter
 
 userDB = sqlite3.connect("games.db")
 userCursor = userDB.cursor()
@@ -248,6 +249,62 @@ async def vote(ctx, *member: discord.Member):
     author = ctx.author.name
     mentioned = member.name
     await ctx.send(f"`{author.split('#')[0]}` has voted for `{mentioned.split('#')[0]}`")
+    await ctx.message.delete()
+    commands = {}
+    embed = discord.Embed(title="Votes",description=f"Game in {ctx.channel}.")
+    guildObj = ctx.guild
+    playerVote = Counter(votes)
+    for playerID in players:
+        memberObject = guildObj.get_member(int(playerID))
+        name = memberObject.name.split("#")[0]
+        playersVotes = playerVote[str(playerID)]
+        commands[name]=f"has `{playersVotes}` votes."
+    for command,description in commands.items():
+        embed.add_field(name=command,value=description,inline=False)
+    await votingMessage.edit(content="",embed=embed)
+
+@client.command()
+async def unvote(ctx):
+    userCursor.execute("SELECT playing FROM games WHERE channelID = ?",(ctx.channel.id,))
+    playing = userCursor.fetchall()[0][0]
+    if playing == 0:
+        await ctx.send("There is no game going on in this channel!")
+        return
+    userCursor.execute("SELECT playerVotes FROM games WHERE channelID = ?",(ctx.channel.id,))
+    votes = userCursor.fetchall()[0][0]
+    votes = votes.split(",")
+    userCursor.execute("SELECT players FROM games WHERE channelID = ?",(ctx.channel.id,))
+    players = userCursor.fetchall()[0][0]
+    players = players.split(",")
+    finalVotes = []
+    count = 0
+    for playerID in players:
+        if playerID == str(ctx.author.id):
+            finalVotes.append("")
+            memberID = votes[count]
+        else:
+            finalVotes.append(str(votes[count]))
+        count += 1
+    finalVotes = ",".join(finalVotes)
+    userCursor.execute("UPDATE games SET playerVotes = ? WHERE channelID = ?",(finalVotes,ctx.channel.id))
+    userDB.commit()
+    author = ctx.author.name
+    guildObj = ctx.guild
+    mentioned = guildObj.get_member(int(memberID))
+    mentioned = mentioned.name
+    await ctx.send(f"`{author.split('#')[0]}` has removed their vote for `{mentioned.split('#')[0]}`")
+    await ctx.message.delete()
+    commands = {}
+    embed = discord.Embed(title="Votes",description=f"Game in {ctx.channel}.")
+    counter = Counter(players)
+    for playerID in players:
+        memberObject = guildObj.get_member(int(playerID))
+        name = memberObject.name.split("#")[0]
+        playerVote = Counter[str(playerID)]
+        commands[name]=f"has `{playerVote}` votes."
+    for command,description in commands.items():
+        embed.add_field(name=command,value=description,inline=False)
+    await votingMessage.edit(content="",embed=embed)
 
 @client.event
 async def on_guild_join(guild):
