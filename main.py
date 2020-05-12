@@ -236,19 +236,18 @@ async def vote(ctx, *member: discord.Member):
         votes.append("")
     finalVotes = []
     count = 0
-    print("assigned count")
     for playerID in players:
-        if playerID == ctx.author.id:
-            finalVotes.append(member.id)
+        if playerID == str(ctx.author.id):
+            finalVotes.append(str(member.id))
         else:
-            finalVotes.append(votes[count])
+            finalVotes.append(str(votes[count]))
         count += 1
-        print("done one iteration of checking")
     finalVotes = ",".join(finalVotes)
-    print("joined shit together")
     userCursor.execute("UPDATE games SET playerVotes = ? WHERE channelID = ?",(finalVotes,ctx.channel.id))
     userDB.commit()
-    await ctx.send(f"`{ctx.author}` have voted for `{member}`")
+    author = ctx.author.name
+    mentioned = member.name
+    await ctx.send(f"`{author.split('#')[0]}` has voted for `{mentioned.split('#')[0]}`")
 
 @client.event
 async def on_guild_join(guild):
