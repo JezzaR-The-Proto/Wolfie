@@ -77,7 +77,6 @@ async def log_bot_stats():
             stats.write(f"{stat}\n")
         stats.write("\n\n")
 
-
 @client.command()
 async def botinfo(ctx):
     def get_size(bytes):
@@ -194,6 +193,8 @@ async def start(ctx):
         playerCount += 1
     playerRoleDict = {}
     playerCount = 0
+    dots = "."
+    message = await ctx.send(f"Assigning roles{dots}")
     for playerID in currentPlayers:
         guildObj = ctx.guild
         memberObject = guildObj.get_member(int(playerID))
@@ -202,6 +203,8 @@ async def start(ctx):
         playerRoleDict[playerID] = currentGameRoles[playerCount]
         await memberObject.send(f"You have been assigned the role of {currentGameRoles[playerCount].capitalize()}.")
         playerCount += 1
+        dots += "."
+        await message.edit(content=f"Assigning roles{dots}")
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
     userCursor.execute("UPDATE games SET playing = ? WHERE initiatorID = ?",(int(1),ctx.author.id))
     userDB.commit()
@@ -253,7 +256,7 @@ async def vote(ctx, *member: discord.Member):
     commands = {}
     embed = discord.Embed(title="Votes",description=f"Game in {ctx.channel}.")
     guildObj = ctx.guild
-    playerVote = Counter(votes)
+    playerVote = Counter(finalVotes.split(","))
     for playerID in players:
         memberObject = guildObj.get_member(int(playerID))
         name = memberObject.name.split("#")[0]
@@ -296,11 +299,11 @@ async def unvote(ctx):
     await ctx.message.delete()
     commands = {}
     embed = discord.Embed(title="Votes",description=f"Game in {ctx.channel}.")
-    counter = Counter(players)
+    counter = Counter(finalVotes.split(","))
     for playerID in players:
         memberObject = guildObj.get_member(int(playerID))
         name = memberObject.name.split("#")[0]
-        playerVote = Counter[str(playerID)]
+        playerVote = counter[str(playerID)]
         commands[name]=f"has `{playerVote}` votes."
     for command,description in commands.items():
         embed.add_field(name=command,value=description,inline=False)
