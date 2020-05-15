@@ -208,10 +208,48 @@ async def start(ctx):
     userCursor.execute("UPDATE games SET playerRoles = ? WHERE initiatorID = ?",(",".join(currentGameRoles),ctx.author.id))
     userCursor.execute("UPDATE games SET playing = ? WHERE initiatorID = ?",(int(1),ctx.author.id))
     userDB.commit()
-    await ctx.send("It is discussion time! You have 1 minute to throw around some random accusations!")
-    await asyncio.sleep(60)
-    votingMessage = await ctx.send("Now vote! Use `w.vote @player` to vote and `w.unvote` to remove your vote. You have 30 seconds! This message will be updated with the current votes.")
-    await asyncio.sleep(30)
+    playing = True
+    while playing:
+        await ctx.send("It is discussion time! You have 1 minute to throw around some random accusations!")
+        await asyncio.sleep(60)
+        votingMessage = await ctx.send("Now vote! Use `w.vote @player` to vote and `w.unvote` to remove your vote. You have 30 seconds! This message will be updated with the current votes.")
+        await asyncio.sleep(30)
+        userCursor.execute("SELECT playerVotes FROM games WHERE channelID = ?",(ctx.channel.id,))
+        votes = userCursor.fetchall()[0][0]
+        playerVote = Counter(votes.split(","))
+        maxVotes = 0
+        for playerID in players:
+            memberObject = guildObj.get_member(int(playerID))
+            name = memberObject.name.split("#")[0]
+            playersVotes = playerVote[str(playerID)]
+            if playersVotes > maxVotes:
+                maxVotes = f"{name},{playersVotes}"
+            elif playersVotes == maxVotes:
+                maxVotes = "Draw"
+                break
+        userCursor.execute("SELECT players FROM games WHERE channelID = ?",(ctx.channel.id,))
+        players = userCursor.fetchall()[0][0]
+        players = players.split(",")
+        if maxVotes == "Draw":
+            await ctx.send("The village could not decide who to lynch.")
+        elif maxVotes < math.floor(len(players)/2):
+            await ctx.send("There were not enough votes to decisively lynch someone.")
+        else:
+            killed = maxVotes.split(",")
+            toKill = killed[0]
+            votes = killed[1]
+            userCursor.execute("SELECT playerRoles FROM games WHERE channelID = ?",(ctx.channel.id,))
+            roles = userCursor.fetchall()[0][0]
+            roles = roles.split(",")
+            count = 0
+            role = None
+            for ID in players:
+                if str(ID) == str(roles[count]):
+                    role = str(roles[count])
+                    break
+                else:
+                    count += 1
+            await ctx.send(f"{toKill} was lynched by the village with {votes} votes! They were {role}.")
 
 @client.command()
 async def vote(ctx, *member: discord.Member):
